@@ -1,108 +1,11 @@
-import { Suspense, useState, useRef, forwardRef, useEffect, useMemo } from 'react'
+import { Suspense, useState } from 'react'
 import { Canvas, useThree } from '@react-three/fiber'
-import { OrbitControls, TransformControls, ContactShadows, useGLTF, useCursor, useHelper, Select, useSelect } from '@react-three/drei'
+import { OrbitControls, TransformControls, ContactShadows, useGLTF, useCursor, Select, useSelect } from '@react-three/drei'
 import { proxy, useSnapshot } from 'valtio'
-import { BoxHelper } from 'three'
 
 // Reactive state model, using Valtio ...
 const modes = ['translate', 'rotate', 'scale']
-const state = proxy({ current: null, mode: 0 })
-
-const Selection = forwardRef(({ children: meshes }, ref) => {
-  // const { mouse } = useThree()
-  // const [selectedMeshNames, setSelectedMeshNames] = useState([])
-  const groupRef = useRef()
-  useHelper(groupRef, BoxHelper, 'blue')
-  // const snap = useSnapshot(state)
-  // const scene = useThree((state) => state.scene)
-  const select = useSelect()
-
-  useEffect(() => {
-    console.log('select', select)
-  }, [select])
-
-  // useEffect(() => {
-  //   console.log("snap", snap.selectedMeshNames);
-  // }, [snap.selectedMeshNames]);
-
-  // useEffect(() => {
-  //   console.log("selectedMeshNames", selectedMeshNames);
-  // }, [selectedMeshNames]);
-
-  // useEffect(() => {
-  //   setSelectedMeshNames(state.selectedMeshNames);
-  // }, [state.selectedMeshNames]);
-
-  // console.log("meshes", meshes);
-
-  // useEffect(() => {
-  //   state.selectedMeshNames = [...selectedMeshNames] // set to the global store when useState is sets
-  // }, [selectedMeshNames])
-
-  // const nonSelectedMeshes = useMemo(() => first, [second]);
-
-  const { selectedMeshes, nonSelectedMeshes } = useMemo(() => {
-    return [...meshes].reduce(
-      (result, mesh) => {
-        if ([...select.map((selected) => selected.name)].includes(mesh.props.name)) {
-          result.selectedMeshes.push(mesh)
-          return result
-        } else {
-          result.nonSelectedMeshes.push(mesh)
-          return result
-        }
-      },
-      {
-        selectedMeshes: [],
-        nonSelectedMeshes: [],
-      },
-    )
-  }, [meshes, select])
-
-  // console.log('meshes', meshes)
-
-  // useEffect(() => {
-  //   // console.log("selectedMeshes", [
-  //   //   ...selectedMeshes.map((mesh) => mesh.props.name),
-  //   // ]);
-  //   console.log('selectedMeshes', selectedMeshes)
-  // }, [selectedMeshes])
-
-  useEffect(() => {
-    console.log('nonSelectedMeshes', [...nonSelectedMeshes.map((mesh) => mesh.props.name)])
-  }, [nonSelectedMeshes])
-
-  return (
-    <>
-      <group ref={groupRef}>{selectedMeshes}</group>
-      {/* <Select
-        box
-        multiple
-        // filter={(items) => {
-        //   console.log('items', items)
-        //   return items
-        // }}
-        // onChange={(args) => {
-        //   setSelectedMeshNames(() => [...args.map((mesh) => mesh.name)]) // get selected meshs(single or multiple), set them to a useState
-        // }}
-      > */}
-      {/* {selectedMeshes.length > 0 && (
-          <TransformControls
-            object={ref}
-            // attach={(<group></group>) as unknown as Object3D}
-            // object={(snap.selected).map((mechName: string) =>
-            //   scene.getObjectByName(mechName)
-            // )}
-            mode={modes[snap.mode]}
-          />
-        )} */}
-      {/* {meshes} */}
-      {/* {selectedMeshes} */}
-      {nonSelectedMeshes}
-      {/* </Select> */}
-    </>
-  )
-})
+let state = proxy({ current: [], mode: 0 })
 
 function Model({ name, ...props }) {
   // Ties this component to the state model
@@ -134,40 +37,6 @@ function Model({ name, ...props }) {
   )
 }
 
-function Models() {
-  const groupRef = useRef()
-  useHelper(groupRef, BoxHelper, 'blue')
-  return (
-    <group position={[0, 10, 0]}>
-      {/* <group ref={groupRef}></group> */}
-      <Select
-        box
-        multiple
-        // filter={(items) => {
-        //   console.log('items', items)
-        //   return items
-        // }}
-        // onChange={(args) => {
-        //   setSelectedMeshNames(() => [...args.map((mesh) => mesh.name)]) // get selected meshs(single or multiple), set them to a useState
-        // }}
-      >
-        <Selection ref={groupRef}>
-          <Model name="Curly" position={[1, -11, -20]} rotation={[2, 0, -0]} />
-          <Model name="DNA" position={[20, 0, -17]} rotation={[1, 1, -2]} />
-          <Model name="Headphones" position={[20, 2, 4]} rotation={[1, 0, -1]} />
-          <Model name="Notebook" position={[-21, -15, -13]} rotation={[2, 0, 1]} />
-          <Model name="Rocket003" position={[18, 15, -25]} rotation={[1, 1, 0]} />
-          <Model name="Roundcube001" position={[-25, -4, 5]} rotation={[1, 0, 0]} scale={0.5} />
-          <Model name="Table" position={[1, -4, -28]} rotation={[1, 0, -1]} scale={0.5} />
-          <Model name="VR_Headset" position={[7, -15, 28]} rotation={[1, 0, -1]} scale={5} />
-          <Model name="Zeppelin" position={[-20, 10, 10]} rotation={[3, -1, 3]} scale={0.005} />
-        </Selection>
-      </Select>
-      <ContactShadows rotation-x={Math.PI / 2} position={[0, -35, 0]} opacity={0.25} width={200} height={200} blur={1} far={50} />
-    </group>
-  )
-}
-
 function Controls() {
   // Get notified on changes to state
   const snap = useSnapshot(state)
@@ -182,14 +51,40 @@ function Controls() {
   )
 }
 
+const Selection = () => {
+  return (
+    <Select
+      box
+      multiple
+      filter={(items) => items}
+      onChange={(args) => {
+        state.current = [...args.map((mesh) => mesh.name)]
+        // setSelectedMeshNames(() => [...args.map((mesh) => mesh.name)]) // get selected meshs(single or multiple), set them to a useState
+      }}>
+      <group>
+        <Model name="Curly" position={[1, -11, -20]} rotation={[2, 0, -0]} />
+        <Model name="DNA" position={[20, 0, -17]} rotation={[1, 1, -2]} />
+        <Model name="Headphones" position={[20, 2, 4]} rotation={[1, 0, -1]} />
+        <Model name="Notebook" position={[-21, -15, -13]} rotation={[2, 0, 1]} />
+        <Model name="Rocket003" position={[18, 15, -25]} rotation={[1, 1, 0]} />
+        <Model name="Roundcube001" position={[-25, -4, 5]} rotation={[1, 0, 0]} scale={0.5} />
+        <Model name="Table" position={[1, -4, -28]} rotation={[1, 0, -1]} scale={0.5} />
+        <Model name="VR_Headset" position={[7, -15, 28]} rotation={[1, 0, -1]} scale={5} />
+        <Model name="Zeppelin" position={[-20, 10, 10]} rotation={[3, -1, 3]} scale={0.005} />
+      </group>
+    </Select>
+  )
+}
+
 export default function App() {
   return (
     <Canvas camera={{ position: [0, -10, 80], fov: 50 }} dpr={[1, 2]}>
       <pointLight position={[100, 100, 100]} intensity={0.8} />
       <hemisphereLight color="#ffffff" groundColor="#b9b9b9" position={[-7, 25, 13]} intensity={0.85} />
       <Suspense fallback={null}>
-        <Models />
+        <Selection />
       </Suspense>
+      <ContactShadows rotation-x={Math.PI / 2} position={[0, -35, 0]} opacity={0.25} width={200} height={200} blur={1} far={50} />
       <Controls />
     </Canvas>
   )
